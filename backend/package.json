@@ -1,0 +1,48 @@
+{
+  "name": "ecommerce-backend",
+  "version": "1.0.0",
+  "description": "REST API backend for a full-stack e-commerce application",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "seed": "node scripts/seed.js",
+    "seed:clear": "node scripts/seed.js --clear",
+    "seed:drop": "node scripts/seed.js --drop",
+    "lint": "eslint src --ext .js",
+    "lint:fix": "eslint src --ext .js --fix"
+  },
+  "keywords": [
+    "ecommerce",
+    "express",
+    "mongoose",
+    "nodejs",
+    "rest-api"
+  ],
+  "author": "",
+  "license": "ISC",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cloudinary": "^2.11.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.3.1",
+    "google-auth-library": "^9.13.0",
+    "helmet": "^7.1.0",
+    "joi": "^17.13.1",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.5.1",
+    "morgan": "^1.10.0",
+    "multer": "^2.0.0",
+    "winston": "^3.13.1"
+  },
+  "devDependencies": {
+    "eslint": "^10.9.1",
+    "nodemon": "^3.1.4"
+  }
+}

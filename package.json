@@ -1,0 +1,11 @@
+{
+  "name": "ecommerce-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "seed": "npm run seed --prefix backend",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:admin": "npm run dev --prefix admin",
+    "build:admin": "npm run build --prefix admin"
+  }
+}

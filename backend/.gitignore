@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Environment variables — NEVER commit real secrets
+.env
+
+# Uploaded files
+uploads/products/*
+uploads/categories/*
+uploads/users/*
+!uploads/products/.gitkeep
+!uploads/categories/.gitkeep
+!uploads/users/.gitkeep
+
+# Logs
+logs/*
+!logs/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
