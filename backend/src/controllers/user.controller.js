@@ -58,6 +58,14 @@ const updateUserStatus = asyncHandler(async (req, res) => {
   return sendSuccess(res, { data: { user }, message: `User successfully ${actionText}` });
 });
 
+/**
+ * DELETE /api/admin/users/:id
+ */
+const deleteUser = asyncHandler(async (req, res) => {
+  const result = await userService.deleteAdminUser(req.params.id);
+  return sendSuccess(res, { data: result, message: 'User deleted successfully' });
+});
+
 module.exports = {
   getProfile,
   updateProfile,
@@ -65,4 +73,6 @@ module.exports = {
   getAdminUserById,
   getAdminUserOrders,
   updateUserStatus,
+  deleteUser,
 };
+

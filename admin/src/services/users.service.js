@@ -20,4 +20,10 @@ export const usersService = {
     const response = await axiosClient.patch(`/admin/users/${id}/status`, { isActive });
     return response.data;
   },
+
+  deleteUser: async (id) => {
+    const response = await axiosClient.delete(`/admin/users/${id}`);
+    return response.data;
+  },
 };
+

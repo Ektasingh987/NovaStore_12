@@ -15,4 +15,10 @@ export const ordersService = {
     const response = await axiosClient.patch(`/admin/orders/${id}/status`, { status, note });
     return response.data;
   },
+
+  deleteOrder: async (id) => {
+    const response = await axiosClient.delete(`/admin/orders/${id}`);
+    return response.data;
+  },
 };
+

@@ -279,6 +279,22 @@ const updateOrderStatus = async (orderId, status, note = '') => {
   return updated;
 };
 
+/**
+ * DELETE /api/admin/orders/:id
+ * Admin deletes an order.
+ */
+const deleteOrder = async (orderId) => {
+  assertValidId(orderId);
+  const existingOrder = await orderRepo.findById(orderId);
+  if (!existingOrder) {
+    throw AppError.notFound('Order', 'ORDER_NOT_FOUND');
+  }
+
+  await orderRepo.deleteById(orderId);
+  logger.info('[Order] Order deleted by admin', { orderId });
+  return { id: orderId, message: 'Order deleted successfully' };
+};
+
 module.exports = {
   createOrder,
   getMyOrders,
@@ -286,4 +302,6 @@ module.exports = {
   getAdminOrders,
   getAdminOrderById,
   updateOrderStatus,
+  deleteOrder,
 };
+

@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchUsers, updateUserStatus } from '../store/slices/usersSlice';
+import { fetchUsers, updateUserStatus, deleteUser } from '../store/slices/usersSlice';
 import { Link } from 'react-router-dom';
-import { Search, Eye, UserCheck, UserX, Users, ShieldAlert } from 'lucide-react';
+import { Search, Eye, UserCheck, UserX, Users, ShieldAlert, Trash2 } from 'lucide-react';
 import { Badge } from '../components/common/Badge';
 import { ConfirmModal } from '../components/common/ConfirmModal';
 import { Pagination } from '../components/common/Pagination';
@@ -25,6 +25,12 @@ export const UsersListPage = () => {
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [userToToggle, setUserToToggle] = useState(null);
   const [toggling, setToggling] = useState(false);
+
+  // Delete User Modal
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
 
   useEffect(() => {
     const params = {
@@ -58,6 +64,28 @@ export const UsersListPage = () => {
       toast.error(result.payload || 'Failed to update user status');
     }
   };
+
+  const handleDeleteUserClick = (user) => {
+    setUserToDelete(user);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteUserConfirm = async () => {
+    if (!userToDelete) return;
+    setDeleting(true);
+    const userId = userToDelete._id || userToDelete.id;
+    const result = await dispatch(deleteUser(userId));
+    setDeleting(false);
+    setDeleteModalOpen(false);
+    setUserToDelete(null);
+
+    if (deleteUser.fulfilled.match(result)) {
+      toast.success(`User account ${userToDelete.name} deleted successfully`);
+    } else {
+      toast.error(result.payload || 'Failed to delete user');
+    }
+  };
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -220,6 +248,16 @@ export const UsersListPage = () => {
                           >
                             {user.isActive ? <UserX size={15} /> : <UserCheck size={15} className="text-emerald-400" />}
                           </button>
+                          {user.role !== 'admin' && (
+                            <button
+                              type="button"
+                              className="btn btn-danger btn-icon"
+                              title="Delete User Account"
+                              onClick={() => handleDeleteUserClick(user)}
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -251,6 +289,23 @@ export const UsersListPage = () => {
         isDestructive={userToToggle?.isActive}
         loading={toggling}
       />
+
+      {/* Delete User Account Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setUserToDelete(null);
+        }}
+        onConfirm={handleDeleteUserConfirm}
+        title="Delete User Account"
+        message={`Are you sure you want to permanently delete "${userToDelete?.name}" (${userToDelete?.email})? All associated cart items and session tokens will be permanently removed.`}
+        confirmText="Delete Account"
+        cancelText="Cancel"
+        isDestructive={true}
+        loading={deleting}
+      />
     </div>
   );
 };
+

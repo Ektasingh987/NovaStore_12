@@ -37,6 +37,18 @@ export const updateOrderStatus = createAsyncThunk(
   }
 );
 
+export const deleteOrder = createAsyncThunk(
+  'orders/deleteOrder',
+  async (id, { rejectWithValue }) => {
+    try {
+      await ordersService.deleteOrder(id);
+      return id;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to delete order');
+    }
+  }
+);
+
 const ordersSlice = createSlice({
   name: 'orders',
   initialState: {
@@ -53,6 +65,7 @@ const ordersSlice = createSlice({
     loading: false,
     detailLoading: false,
     updatingStatus: false,
+    deletingOrder: false,
     error: null,
   },
   reducers: {
@@ -107,9 +120,25 @@ const ordersSlice = createSlice({
       .addCase(updateOrderStatus.rejected, (state, action) => {
         state.updatingStatus = false;
         state.error = action.payload;
+      })
+      // Delete order
+      .addCase(deleteOrder.pending, (state) => {
+        state.deletingOrder = true;
+      })
+      .addCase(deleteOrder.fulfilled, (state, action) => {
+        state.deletingOrder = false;
+        state.items = state.items.filter((o) => o._id !== action.payload && o.id !== action.payload);
+        if (state.currentOrder && (state.currentOrder._id === action.payload || state.currentOrder.id === action.payload)) {
+          state.currentOrder = null;
+        }
+      })
+      .addCase(deleteOrder.rejected, (state, action) => {
+        state.deletingOrder = false;
+        state.error = action.payload;
       });
   },
 });
 
 export const { clearCurrentOrder, clearOrderError } = ordersSlice.actions;
 export default ordersSlice.reducer;
+

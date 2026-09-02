@@ -161,6 +161,34 @@ const updateUserStatus = async (userId, isActive) => {
   return updated.toPublicJSON ? updated.toPublicJSON() : updated;
 };
 
+/**
+ * DELETE /api/admin/users/:id
+ * Admin deletes a customer user.
+ */
+const deleteAdminUser = async (userId) => {
+  assertValidId(userId);
+
+  const user = await userRepo.findById(userId);
+  if (!user) {
+    throw AppError.notFound('User', 'USER_NOT_FOUND');
+  }
+
+  if (user.role === 'admin') {
+    throw AppError.forbidden('Administrator accounts cannot be deleted');
+  }
+
+  // Revoke all tokens, delete user's cart, and remove user record
+  const Cart = require('../models/Cart');
+  await Promise.all([
+    tokenService.revokeAllUserTokens(userId),
+    Cart.deleteMany({ userId }),
+    userRepo.deleteById(userId),
+  ]);
+
+  logger.info('[Admin] User deleted', { userId, email: user.email });
+  return { id: userId, message: 'User account deleted successfully' };
+};
+
 module.exports = {
   getProfile,
   updateProfile,
@@ -168,4 +196,6 @@ module.exports = {
   getAdminUserById,
   getAdminUserOrders,
   updateUserStatus,
+  deleteAdminUser,
 };
+

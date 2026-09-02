@@ -31,6 +31,9 @@ router.get('/orders/:id', orderController.getAdminOrderById);
 /** PATCH /api/admin/orders/:id/status — update order status */
 router.patch('/orders/:id/status', validate(updateStatusSchema), orderController.updateOrderStatus);
 
+/** DELETE /api/admin/orders/:id — delete order */
+router.delete('/orders/:id', orderController.deleteOrder);
+
 // ─── Admin User Management ────────────────────────────────────────────────────
 
 /** GET /api/admin/users — list all users with pagination, search, filter, sort */
@@ -49,4 +52,8 @@ router.patch(
   userController.updateUserStatus,
 );
 
+/** DELETE /api/admin/users/:id — delete user account */
+router.delete('/users/:id', userController.deleteUser);
+
 module.exports = router;
+

@@ -83,6 +83,10 @@ const updateStatus = async (id, status, note = '') => {
   return Order.findById(id).populate('userId', 'name email phone').lean();
 };
 
+const deleteById = async (id) => {
+  return Order.findByIdAndDelete(id);
+};
+
 module.exports = {
   create,
   findById,
@@ -92,4 +96,6 @@ module.exports = {
   findAll,
   countAll,
   updateStatus,
+  deleteById,
 };
+

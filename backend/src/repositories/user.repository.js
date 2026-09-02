@@ -73,6 +73,12 @@ const findAll = ({ filter, sort, skip, limit }) =>
  */
 const countAll = (filter) => User.countDocuments(filter);
 
+/**
+ * Delete user by ID.
+ * @param {string|import('mongoose').Types.ObjectId} id
+ */
+const deleteById = (id) => User.findByIdAndDelete(id);
+
 module.exports = {
   findByEmail,
   findById,
@@ -83,4 +89,6 @@ module.exports = {
   updateById,
   findAll,
   countAll,
+  deleteById,
 };
+

@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchOrders, updateOrderStatus } from '../store/slices/ordersSlice';
+import { fetchOrders, updateOrderStatus, deleteOrder } from '../store/slices/ordersSlice';
 import { Link } from 'react-router-dom';
-import { Search, Eye, Filter, ShoppingBag } from 'lucide-react';
+import { Search, Eye, Filter, ShoppingBag, Trash2 } from 'lucide-react';
 import { Badge } from '../components/common/Badge';
 import { Pagination } from '../components/common/Pagination';
 import { TableSkeleton } from '../components/common/LoadingSkeleton';
 import { ErrorState } from '../components/common/ErrorState';
 import { EmptyState } from '../components/common/EmptyState';
+import { ConfirmModal } from '../components/common/ConfirmModal';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { ORDER_STATUSES } from '../constants';
 import toast from 'react-hot-toast';
@@ -19,6 +20,11 @@ export const OrdersListPage = () => {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
+
+  // Delete modal state
+  const [orderToDelete, setOrderToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
 
   useEffect(() => {
     const params = {
@@ -39,6 +45,22 @@ export const OrdersListPage = () => {
       toast.error(result.payload || 'Failed to update order status');
     }
   };
+
+  const handleDeleteConfirm = async () => {
+    if (!orderToDelete) return;
+    setDeleting(true);
+    const orderId = orderToDelete._id || orderToDelete.id;
+    const result = await dispatch(deleteOrder(orderId));
+    setDeleting(false);
+    setOrderToDelete(null);
+
+    if (deleteOrder.fulfilled.match(result)) {
+      toast.success(`Order ${orderToDelete.orderNumber || ''} deleted successfully`);
+    } else {
+      toast.error(result.payload || 'Failed to delete order');
+    }
+  };
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -193,13 +215,24 @@ export const OrdersListPage = () => {
                       </select>
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      <Link
-                        to={`/orders/${order._id}`}
-                        className="btn btn-secondary btn-sm"
-                        title="View Full Order Details"
-                      >
-                        <Eye size={14} /> View
-                      </Link>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'flex-end' }}>
+                        <Link
+                          to={`/orders/${order._id}`}
+                          className="btn btn-secondary btn-sm"
+                          title="View Full Order Details"
+                        >
+                          <Eye size={14} /> View
+                        </Link>
+                        <button
+                          type="button"
+                          className="btn btn-danger btn-sm"
+                          title="Delete Order Record"
+                          onClick={() => setOrderToDelete(order)}
+                          style={{ padding: '0.35rem 0.55rem' }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -210,6 +243,20 @@ export const OrdersListPage = () => {
 
         <Pagination meta={meta} onPageChange={(newPage) => setPage(newPage)} />
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(orderToDelete)}
+        onClose={() => setOrderToDelete(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Order Record"
+        message={`Are you sure you want to permanently delete order "${orderToDelete?.orderNumber}"? This will permanently remove it from the system.`}
+        confirmText="Delete Order"
+        cancelText="Cancel"
+        isDestructive={true}
+        loading={deleting}
+      />
     </div>
   );
 };
+

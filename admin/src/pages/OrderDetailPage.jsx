@@ -1,22 +1,27 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchOrderById, updateOrderStatus, clearCurrentOrder } from '../store/slices/ordersSlice';
-import { ArrowLeft, MapPin, User, CreditCard, Package, Clock, CheckCircle2 } from 'lucide-react';
+import { fetchOrderById, updateOrderStatus, clearCurrentOrder, deleteOrder } from '../store/slices/ordersSlice';
+import { ArrowLeft, MapPin, User, CreditCard, Package, Clock, CheckCircle2, Trash2 } from 'lucide-react';
 import { Badge } from '../components/common/Badge';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { ErrorState } from '../components/common/ErrorState';
+import { ConfirmModal } from '../components/common/ConfirmModal';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { ORDER_STATUSES } from '../constants';
 import toast from 'react-hot-toast';
 
 export const OrderDetailPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const { currentOrder: order, detailLoading, updatingStatus, error } = useSelector((state) => state.orders);
 
   const [selectedStatus, setSelectedStatus] = useState('');
   const [statusNote, setStatusNote] = useState('');
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
 
   useEffect(() => {
     dispatch(fetchOrderById(id));
@@ -44,6 +49,20 @@ export const OrderDetailPage = () => {
       setStatusNote('');
     } else {
       toast.error(result.payload || 'Failed to update order status');
+    }
+  };
+
+  const handleDeleteOrder = async () => {
+    setDeleting(true);
+    const result = await dispatch(deleteOrder(id));
+    setDeleting(false);
+    setDeleteModalOpen(false);
+
+    if (deleteOrder.fulfilled.match(result)) {
+      toast.success(`Order ${order.orderNumber} deleted successfully`);
+      navigate('/orders');
+    } else {
+      toast.error(result.payload || 'Failed to delete order');
     }
   };
 
@@ -81,7 +100,20 @@ export const OrderDetailPage = () => {
             </p>
           </div>
         </div>
+
+        {/* Delete Order Action */}
+        <div>
+          <button
+            type="button"
+            className="btn btn-danger btn-sm"
+            onClick={() => setDeleteModalOpen(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+          >
+            <Trash2 size={15} /> Delete Order
+          </button>
+        </div>
       </div>
+
 
       <div className="grid grid-cols-3 lg-grid-cols-1 gap-6">
         {/* Left Column: Items & Timeline (2 cols) */}
@@ -356,6 +388,20 @@ export const OrderDetailPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Delete Order Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleDeleteOrder}
+        title="Delete Order Record"
+        message={`Are you sure you want to permanently delete order "${order.orderNumber}"? This action cannot be undone.`}
+        confirmText="Delete Order"
+        cancelText="Cancel"
+        isDestructive={true}
+        loading={deleting}
+      />
     </div>
   );
 };
+

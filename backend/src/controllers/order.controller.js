@@ -63,6 +63,15 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
   return sendSuccess(res, { data: { order }, message: `Order status updated to ${status}` });
 });
 
+/**
+ * DELETE /api/admin/orders/:id
+ * Admin delete order
+ */
+const deleteOrder = asyncHandler(async (req, res) => {
+  const result = await orderService.deleteOrder(req.params.id);
+  return sendSuccess(res, { data: result, message: 'Order deleted successfully' });
+});
+
 module.exports = {
   createOrder,
   getMyOrders,
@@ -70,4 +79,6 @@ module.exports = {
   getAdminOrders,
   getAdminOrderById,
   updateOrderStatus,
+  deleteOrder,
 };
+

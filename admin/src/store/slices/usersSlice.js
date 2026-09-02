@@ -49,6 +49,18 @@ export const updateUserStatus = createAsyncThunk(
   }
 );
 
+export const deleteUser = createAsyncThunk(
+  'users/deleteUser',
+  async (id, { rejectWithValue }) => {
+    try {
+      await usersService.deleteUser(id);
+      return id;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to delete user');
+    }
+  }
+);
+
 const usersSlice = createSlice({
   name: 'users',
   initialState: {
@@ -68,6 +80,7 @@ const usersSlice = createSlice({
     detailLoading: false,
     ordersLoading: false,
     updatingStatus: false,
+    deletingUser: false,
     error: null,
   },
   reducers: {
@@ -136,9 +149,25 @@ const usersSlice = createSlice({
       .addCase(updateUserStatus.rejected, (state, action) => {
         state.updatingStatus = false;
         state.error = action.payload;
+      })
+      // Delete user
+      .addCase(deleteUser.pending, (state) => {
+        state.deletingUser = true;
+      })
+      .addCase(deleteUser.fulfilled, (state, action) => {
+        state.deletingUser = false;
+        state.items = state.items.filter((u) => u._id !== action.payload && u.id !== action.payload);
+        if (state.currentUser && (state.currentUser._id === action.payload || state.currentUser.id === action.payload)) {
+          state.currentUser = null;
+        }
+      })
+      .addCase(deleteUser.rejected, (state, action) => {
+        state.deletingUser = false;
+        state.error = action.payload;
       });
   },
 });
 
 export const { clearCurrentUser, clearUserError } = usersSlice.actions;
 export default usersSlice.reducer;
+
