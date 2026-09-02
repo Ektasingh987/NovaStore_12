@@ -11,16 +11,15 @@ import 'services/storage_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load environment variables from .env asset
-  try {
-    await dotenv.load(fileName: '.env');
-  } catch (e) {
-    debugPrint('dotenv notice: $e');
-  }
+  // Initialize environment and storage concurrently to minimize cold start delay
+  final results = await Future.wait([
+    dotenv.load(fileName: '.env').catchError((e) {
+      debugPrint('dotenv notice: $e');
+    }),
+    StorageService.init(),
+  ]);
 
-
-  // Initialize persistent storage
-  final storageService = await StorageService.init();
+  final storageService = results[1] as StorageService;
 
   runApp(
     ProviderScope(

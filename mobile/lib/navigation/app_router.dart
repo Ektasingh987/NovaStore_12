@@ -15,6 +15,7 @@ import '../screens/orders/order_history_screen.dart';
 import '../screens/products/product_details_screen.dart';
 import '../screens/products/product_listing_screen.dart';
 import '../screens/profile/profile_screen.dart';
+import '../screens/splash/splash_screen.dart';
 import 'routes.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -30,7 +31,7 @@ class RouterNotifier extends ChangeNotifier {
   RouterNotifier(this._ref) {
     _ref.listen<AuthState>(
       authProvider,
-      (_, __) => notifyListeners(),
+      (_, _) => notifyListeners(),
     );
   }
 }
@@ -44,29 +45,34 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: AppRoutes.home,
+    initialLocation: AppRoutes.splash,
     refreshListenable: notifier,
     redirect: (context, state) {
       final authState = ref.read(authProvider);
-
-      // Don't redirect until auth is initialized from storage
-      if (!authState.isInitialized) return null;
-
-      final isAuthenticated = authState.isAuthenticated;
       final location = state.matchedLocation;
 
+      // Until auth completes reading storage, remain on splash
+      if (!authState.isInitialized) {
+        return location == AppRoutes.splash ? null : AppRoutes.splash;
+      }
+
+      final isAuthenticated = authState.isAuthenticated;
       final isAuthRoute = location == AppRoutes.login ||
           location == AppRoutes.register ||
           location == AppRoutes.googleLogin;
 
-      // If user is authenticated and tries to visit auth pages, send to home
+      // Coming from splash after initialization completes
+      if (location == AppRoutes.splash) {
+        return isAuthenticated ? AppRoutes.home : AppRoutes.login;
+      }
+
+      // If user is authenticated and tries to visit auth pages, redirect to home
       if (isAuthenticated && isAuthRoute) {
         return AppRoutes.home;
       }
 
-      // If user is NOT authenticated, redirect to login for ALL non-auth routes
+      // If user is NOT authenticated, redirect to login for all non-auth routes
       if (!isAuthenticated && !isAuthRoute) {
-        // Preserve redirect path for post-login navigation
         return '${AppRoutes.login}?redirect=${Uri.encodeComponent(location)}';
       }
 
@@ -134,6 +140,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
+      ),
+
+      // Splash Route
+      GoRoute(
+        path: AppRoutes.splash,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const SplashScreen(),
       ),
 
       // Auth Routes

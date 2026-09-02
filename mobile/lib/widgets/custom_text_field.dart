@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../constants/app_colors.dart';
 
 class CustomTextField extends StatefulWidget {
@@ -15,6 +16,8 @@ class CustomTextField extends StatefulWidget {
   final void Function(String)? onChanged;
   final void Function(String)? onSubmitted;
   final int maxLines;
+  final int? maxLength;
+  final List<TextInputFormatter>? inputFormatters;
   final bool enabled;
   final bool readOnly;
   final FocusNode? focusNode;
@@ -34,6 +37,8 @@ class CustomTextField extends StatefulWidget {
     this.onChanged,
     this.onSubmitted,
     this.maxLines = 1,
+    this.maxLength,
+    this.inputFormatters,
     this.enabled = true,
     this.readOnly = false,
     this.focusNode,
@@ -79,6 +84,11 @@ class _CustomTextFieldState extends State<CustomTextField> {
           keyboardType: widget.keyboardType,
           textInputAction: widget.textInputAction,
           validator: widget.validator,
+          maxLength: widget.maxLength,
+          inputFormatters: widget.inputFormatters,
+          buildCounter: widget.maxLength != null
+              ? (context, {required currentLength, required isFocused, maxLength}) => null
+              : null,
           onChanged: widget.onChanged,
           onFieldSubmitted: widget.onSubmitted,
           maxLines: widget.isPassword ? 1 : widget.maxLines,

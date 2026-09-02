@@ -6,9 +6,14 @@ const addressSchema = Joi.object({
   fullName: Joi.string().min(2).max(100).trim().required().messages({
     'any.required': 'Full name is required for delivery address',
   }),
-  phone: Joi.string().trim().required().messages({
-    'any.required': 'Phone number is required for delivery address',
-  }),
+  phone: Joi.string()
+    .trim()
+    .pattern(/^[0-9]{10}$/)
+    .required()
+    .messages({
+      'string.pattern.base': 'Phone number must be exactly 10 digits',
+      'any.required': 'Phone number is required for delivery address',
+    }),
   line1: Joi.string().min(3).max(200).trim().required().messages({
     'any.required': 'Address line 1 is required',
   }),

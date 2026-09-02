@@ -7,9 +7,14 @@ const Joi = require('joi');
  */
 const updateProfileSchema = Joi.object({
   name: Joi.string().min(2).max(100).trim().optional(),
-  phone: Joi.string().trim().pattern(/^\+?[0-9\s\-().]{7,20}$/).optional().allow('', null).messages({
-    'string.pattern.base': 'Please provide a valid phone number',
-  }),
+  phone: Joi.string()
+    .trim()
+    .pattern(/^[0-9]{10}$/)
+    .optional()
+    .allow('', null)
+    .messages({
+      'string.pattern.base': 'Phone number must be exactly 10 digits',
+    }),
 }).min(1).messages({
   'object.min': 'At least one field (name, phone) must be provided for update',
 });

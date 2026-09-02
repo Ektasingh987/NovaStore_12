@@ -61,9 +61,12 @@ class Validators {
       if (isOptional) return null;
       return 'Phone number is required';
     }
-    final phoneRegex = RegExp(r'^\+?[0-9\s\-().]{7,20}$');
-    if (!phoneRegex.hasMatch(value.trim())) {
-      return 'Please enter a valid phone number';
+    final trimmed = value.trim();
+    if (!RegExp(r'^[0-9]+$').hasMatch(trimmed)) {
+      return 'Phone number must contain digits only';
+    }
+    if (trimmed.length != 10) {
+      return 'Phone number must be exactly 10 digits';
     }
     return null;
   }

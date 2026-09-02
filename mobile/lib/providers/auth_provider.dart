@@ -87,7 +87,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return;
       }
 
-      final result = await _authApi.refreshToken(refreshToken);
+      final result = await _authApi.refreshToken(refreshToken).timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => throw ApiException(message: 'Auth timeout'),
+      );
       if (result.refreshToken != null && result.refreshToken!.isNotEmpty) {
         await _storageService.saveRefreshToken(result.refreshToken!);
       }

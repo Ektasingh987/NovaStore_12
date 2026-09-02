@@ -25,7 +25,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     with TickerProviderStateMixin {
   final _searchController = TextEditingController();
   final _pageController = PageController();
-  int _currentBannerIndex = 0;
+  final _currentBannerNotifier = ValueNotifier<int>(0);
+  final _hasSearchText = ValueNotifier<bool>(false);
   Timer? _bannerTimer;
 
   // Banner data
@@ -69,10 +70,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void initState() {
     super.initState();
 
-    // Auto-scroll banner
+    _searchController.addListener(() {
+      final hasText = _searchController.text.isNotEmpty;
+      if (_hasSearchText.value != hasText) {
+        _hasSearchText.value = hasText;
+      }
+    });
+
+    // Auto-scroll banner smoothly without rebuilding HomeScreen
     _bannerTimer = Timer.periodic(const Duration(seconds: 4), (_) {
       if (!mounted) return;
-      final next = (_currentBannerIndex + 1) % _banners.length;
+      final next = (_currentBannerNotifier.value + 1) % _banners.length;
       _pageController.animateToPage(
         next,
         duration: const Duration(milliseconds: 500),
@@ -85,6 +93,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void dispose() {
     _searchController.dispose();
     _pageController.dispose();
+    _currentBannerNotifier.dispose();
+    _hasSearchText.dispose();
     _bannerTimer?.cancel();
     super.dispose();
   }
@@ -120,68 +130,77 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         color: AppColors.primary,
         child: CustomScrollView(
           slivers: [
-            // ─── Header (SliverAppBar) ──────────────────────────────────
+            // ─── Fixed Header & Search Bar (SliverAppBar) ───────────────
             SliverAppBar(
               pinned: true,
               floating: false,
-              toolbarHeight: 74,
+              toolbarHeight: 72,
               backgroundColor:
                   isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
               elevation: 0,
-              scrolledUnderElevation: 0,
+              scrolledUnderElevation: 2,
               automaticallyImplyLeading: false,
               titleSpacing: 0,
               title: _buildHeader(authState, isDark),
-            ),
-
-            // ─── Search Bar ──────────────────────────────────────────
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
-                child: _buildSearchBar(isDark),
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(66),
+                child: Container(
+                  color: isDark
+                      ? AppColors.backgroundDark
+                      : AppColors.backgroundLight,
+                  padding: const EdgeInsets.fromLTRB(20, 2, 20, 12),
+                  child: _buildSearchBar(isDark),
+                ),
               ),
             ),
 
             // ─── Banner Carousel ─────────────────────────────────────
             SliverToBoxAdapter(
-              child: Column(
-                children: [
-                  SizedBox(
-                    height: 180,
-                    child: PageView.builder(
-                      controller: _pageController,
-                      itemCount: _banners.length,
-                      onPageChanged: (i) =>
-                          setState(() => _currentBannerIndex = i),
-                      itemBuilder: (context, index) {
-                        final banner = _banners[index];
-                        return _buildBannerCard(banner, isDark);
+              child: Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Column(
+                  children: [
+                    SizedBox(
+                      height: 180,
+                      child: PageView.builder(
+                        controller: _pageController,
+                        itemCount: _banners.length,
+                        onPageChanged: (i) => _currentBannerNotifier.value = i,
+                        itemBuilder: (context, index) {
+                          final banner = _banners[index];
+                          return _buildBannerCard(banner, isDark);
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    // Dot indicators isolated with ValueListenableBuilder
+                    ValueListenableBuilder<int>(
+                      valueListenable: _currentBannerNotifier,
+                      builder: (context, currentIndex, _) {
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(_banners.length, (i) {
+                            final isActive = i == currentIndex;
+                            return AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              width: isActive ? 20 : 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(3),
+                                color: isActive
+                                    ? AppColors.primary
+                                    : (isDark
+                                        ? AppColors.borderDark
+                                        : AppColors.borderLight),
+                              ),
+                            );
+                          }),
+                        );
                       },
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  // Dot indicators
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(_banners.length, (i) {
-                      final isActive = i == _currentBannerIndex;
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: isActive ? 20 : 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(3),
-                          color: isActive
-                              ? AppColors.primary
-                              : (isDark
-                                  ? AppColors.borderDark
-                                  : AppColors.borderLight),
-                        ),
-                      );
-                    }),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
 
@@ -478,105 +497,110 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           ),
           const SizedBox(width: 8),
           // Actions
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Notification bell
-              Container(
-                margin: const EdgeInsets.only(right: 8),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.surfaceDark : Colors.white,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.2),
-                      blurRadius: 8,
-                    )
-                  ],
-                ),
-                child: IconButton(
-                  icon: Icon(
-                    Icons.notifications_outlined,
-                    color: isDark
-                        ? AppColors.textPrimaryDark
-                        : AppColors.textPrimaryLight,
-                    size: 22,
-                  ),
-                  onPressed: () {},
-                  padding: const EdgeInsets.all(8),
-                  constraints: const BoxConstraints(),
-                ),
-              ),
-              // Cart
-              CartBadgeIcon(
-                onTap: () => context.push(AppRoutes.cart),
-                color: isDark
-                    ? AppColors.textPrimaryDark
-                    : AppColors.textPrimaryLight,
-              ),
-            ],
+          // Cart Action
+          CartBadgeIcon(
+            onTap: () => context.push(AppRoutes.cart),
+            color: isDark
+                ? AppColors.textPrimaryDark
+                : AppColors.textPrimaryLight,
           ),
         ],
       ),
     );
   }
 
-  // ─── Search Bar ────────────────────────────────────────────────────────────
+  // ─── Search Bar (Rounded Corners & Elevated) ──────────────────────────────
   Widget _buildSearchBar(bool isDark) {
     return Container(
       decoration: BoxDecoration(
         color: isDark ? AppColors.surfaceDark : Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(30),
         border: Border.all(
           color: isDark ? AppColors.borderDark : AppColors.borderLight,
           width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
-      child: TextField(
-        controller: _searchController,
-        textInputAction: TextInputAction.search,
-        onSubmitted: _onSearchSubmitted,
-        textAlignVertical: TextAlignVertical.center,
-        style: TextStyle(
-          fontSize: 14,
-          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-        ),
-        decoration: InputDecoration(
-          isDense: true,
-          hintText: 'Search electronics, clothing, gadgets...',
-          hintStyle: TextStyle(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(30),
+        child: TextField(
+          controller: _searchController,
+          textInputAction: TextInputAction.search,
+          onSubmitted: _onSearchSubmitted,
+          textAlignVertical: TextAlignVertical.center,
+          style: TextStyle(
             fontSize: 14,
-            color: isDark
-                ? AppColors.textTertiaryDark
-                : AppColors.textTertiaryLight,
+            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
           ),
-          prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary, size: 20),
-          suffixIcon: _searchController.text.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear, size: 18),
-                  onPressed: () {
-                    _searchController.clear();
-                    setState(() {});
+          decoration: InputDecoration(
+            isDense: true,
+            hintText: 'Search products, brands, gadgets...',
+            hintStyle: TextStyle(
+              fontSize: 14,
+              color: isDark
+                  ? AppColors.textTertiaryDark
+                  : AppColors.textTertiaryLight,
+            ),
+            prefixIcon: const Padding(
+              padding: EdgeInsets.only(left: 14, right: 10),
+              child: Icon(
+                Icons.search_rounded,
+                color: AppColors.primary,
+                size: 22,
+              ),
+            ),
+            prefixIconConstraints: const BoxConstraints(minWidth: 46, minHeight: 46),
+            suffixIcon: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ValueListenableBuilder<bool>(
+                  valueListenable: _hasSearchText,
+                  builder: (context, hasText, _) {
+                    if (!hasText) return const SizedBox.shrink();
+                    return IconButton(
+                      icon: const Icon(Icons.close_rounded, size: 18),
+                      splashRadius: 18,
+                      onPressed: () {
+                        _searchController.clear();
+                      },
+                    );
                   },
-                )
-              : null,
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                ),
+                Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.tune_rounded,
+                      size: 17,
+                      color: AppColors.primary,
+                    ),
+                    splashRadius: 18,
+                    padding: EdgeInsets.zero,
+                    tooltip: 'All Filters',
+                    onPressed: () => context.push(AppRoutes.products),
+                  ),
+                ),
+              ],
+            ),
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
         ),
-        onChanged: (val) => setState(() {}),
       ),
     );
   }

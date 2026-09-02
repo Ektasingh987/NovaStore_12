@@ -40,9 +40,9 @@ const registerSchema = Joi.object({
   password: passwordField,
   phone: Joi.string()
     .trim()
-    .pattern(/^\+?[0-9\s\-().]{7,20}$/)
+    .pattern(/^[0-9]{10}$/)
     .optional()
-    .messages({ 'string.pattern.base': 'Please provide a valid phone number' }),
+    .messages({ 'string.pattern.base': 'Phone number must be exactly 10 digits' }),
 });
 
 /**

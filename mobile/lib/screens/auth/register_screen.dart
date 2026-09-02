@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../constants/app_colors.dart';
@@ -119,12 +120,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Phone (Optional)
+                // Phone (Optional, 10 digits)
                 CustomTextField(
                   controller: _phoneController,
-                  label: 'Phone Number (Optional)',
-                  hintText: '+91 9876543210',
+                  label: 'Phone Number (10 digits, Optional)',
+                  hintText: '9876543210',
                   keyboardType: TextInputType.phone,
+                  maxLength: 10,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(10),
+                  ],
                   prefixIcon: const Icon(Icons.phone_outlined, size: 20),
                   validator: (val) => Validators.phone(val, isOptional: true),
                 ),

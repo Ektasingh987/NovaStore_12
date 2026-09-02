@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../constants/app_constants.dart';
 import '../models/api_response.dart';
 import '../models/product_model.dart';
@@ -11,6 +12,17 @@ class ProductListResult {
     required this.products,
     required this.meta,
   });
+}
+
+// Top-level function executed in background isolate to keep main thread free
+ProductListResult _parseProductList(Map<String, dynamic> response) {
+  final data = response['data'] as Map<String, dynamic>?;
+  final rawList = (data?['products'] as List<dynamic>?) ?? [];
+  final products = rawList
+      .map((item) => ProductModel.fromJson(item as Map<String, dynamic>))
+      .toList();
+  final meta = PaginationMeta.fromJson(response['meta'] as Map<String, dynamic>?);
+  return ProductListResult(products: products, meta: meta);
 }
 
 class ProductApi {
@@ -61,15 +73,15 @@ class ProductApi {
       queryParameters: query,
     );
 
-    final data = response['data'] as Map<String, dynamic>?;
-    final rawList = (data?['products'] as List<dynamic>?) ?? [];
-    final products = rawList
-        .map((item) => ProductModel.fromJson(item as Map<String, dynamic>))
-        .toList();
+    if (response is! Map<String, dynamic>) {
+      return ProductListResult(
+        products: [],
+        meta: PaginationMeta.fromJson(null),
+      );
+    }
 
-    final meta = PaginationMeta.fromJson(response['meta'] as Map<String, dynamic>?);
-
-    return ProductListResult(products: products, meta: meta);
+    // Offload parsing off the main UI thread to a background worker isolate
+    return await compute(_parseProductList, response);
   }
 
   Future<ProductModel> getProductById(String id) async {

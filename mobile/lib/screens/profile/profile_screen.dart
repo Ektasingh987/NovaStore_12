@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_constants.dart';
 import '../../navigation/routes.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/cart_provider.dart';
+import '../../providers/orders_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../utils/snackbar_utils.dart';
@@ -34,10 +37,10 @@ class ProfileScreen extends ConsumerWidget {
             bottom: MediaQuery.of(modalContext).viewInsets.bottom,
           ),
           child: Container(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
             decoration: BoxDecoration(
               color: isDark ? AppColors.surfaceDark : Colors.white,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
             ),
             child: Form(
               key: formKey,
@@ -45,24 +48,37 @@ class ProfileScreen extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         'Edit Profile',
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 20,
                           fontWeight: FontWeight.w700,
-                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                          color: isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimaryLight,
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close),
+                        icon: const Icon(Icons.close_rounded),
                         onPressed: () => Navigator.pop(modalContext),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 18),
                   CustomTextField(
                     controller: nameController,
                     label: 'Full Name',
@@ -72,9 +88,14 @@ class ProfileScreen extends ConsumerWidget {
                   const SizedBox(height: 14),
                   CustomTextField(
                     controller: phoneController,
-                    label: 'Phone Number',
-                    hintText: '+91 9876543210',
+                    label: 'Phone Number (10 digits)',
+                    hintText: '9876543210',
                     keyboardType: TextInputType.phone,
+                    maxLength: 10,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(10),
+                    ],
                     validator: (val) => Validators.phone(val, isOptional: true),
                   ),
                   const SizedBox(height: 24),
@@ -82,17 +103,18 @@ class ProfileScreen extends ConsumerWidget {
                     text: 'Save Changes',
                     onPressed: () async {
                       if (!formKey.currentState!.validate()) return;
-                      final success = await ref.read(userProvider.notifier).updateProfile(
-                            name: nameController.text.trim(),
-                            phone: phoneController.text.trim(),
-                          );
+                      final success =
+                          await ref.read(userProvider.notifier).updateProfile(
+                                name: nameController.text.trim(),
+                                phone: phoneController.text.trim(),
+                              );
                       if (context.mounted && success) {
                         Navigator.pop(modalContext);
-                        SnackbarUtils.showSuccess(context, 'Profile updated successfully!');
+                        SnackbarUtils.showSuccess(
+                            context, 'Profile updated successfully!');
                       }
                     },
                   ),
-                  const SizedBox(height: 12),
                 ],
               ),
             ),
@@ -102,15 +124,17 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  void _confirmLogout(BuildContext context, WidgetRef ref, {bool isAllDevices = false}) {
+  void _confirmLogout(BuildContext context, WidgetRef ref,
+      {bool isAllDevices = false}) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(isAllDevices ? 'Logout All Devices' : 'Sign Out'),
         content: Text(
           isAllDevices
               ? 'Are you sure you want to log out from all devices? All active sessions will be terminated.'
-              : 'Are you sure you want to sign out?',
+              : 'Are you sure you want to sign out from your account?',
         ),
         actions: [
           TextButton(
@@ -130,7 +154,13 @@ class ProfileScreen extends ConsumerWidget {
                 context.go(AppRoutes.home);
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
             child: Text(isAllDevices ? 'Logout All' : 'Sign Out'),
           ),
         ],
@@ -143,15 +173,22 @@ class ProfileScreen extends ConsumerWidget {
     final authState = ref.watch(authProvider);
     final userState = ref.watch(userProvider);
     final themeMode = ref.watch(themeProvider);
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final ordersState = ref.watch(ordersProvider);
+    final cartState = ref.watch(cartProvider);
+    final cartCount = cartState.cart.totalItems;
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (!authState.isAuthenticated) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Profile')),
+        appBar: AppBar(
+          title: const Text('My Profile'),
+          centerTitle: true,
+        ),
         body: EmptyView(
           title: 'Sign In to Your Account',
-          message: 'Sign in to access your profile, order history, and preferences.',
+          message:
+              'Sign in to access your profile, order history, and preferences.',
           icon: Icons.person_outline_rounded,
           buttonText: 'Sign In',
           onButtonPressed: () => context.push(AppRoutes.login),
@@ -162,174 +199,450 @@ class ProfileScreen extends ConsumerWidget {
     final user = userState.profile ?? authState.user;
 
     return Scaffold(
+      backgroundColor:
+          isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
       appBar: AppBar(
-        title: const Text('Profile'),
-        actions: [
-          IconButton(
-            icon: Icon(
-              themeMode == ThemeMode.dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-            ),
-            tooltip: 'Toggle Theme',
-            onPressed: () => ref.read(themeProvider.notifier).toggleTheme(),
-          ),
-          const SizedBox(width: 8),
-        ],
+        title: const Text(
+          'My Profile',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+        centerTitle: true,
+        elevation: 0,
+        scrolledUnderElevation: 1,
+        // Theme toggle is removed from AppBar actions so it appears in ONLY ONE place
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
         child: Column(
           children: [
-            // User Avatar & Name Card
+            // ─── Hero Profile Card ──────────────────────────────────────
             Container(
-              padding: const EdgeInsets.all(20),
+              width: double.infinity,
+              padding: const EdgeInsets.all(22),
               decoration: BoxDecoration(
                 color: isDark ? AppColors.cardDark : Colors.white,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(24),
                 border: Border.all(
                   color: isDark ? AppColors.borderDark : AppColors.borderLight,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
-                    blurRadius: 10,
+                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+                    blurRadius: 16,
                     offset: const Offset(0, 4),
                   ),
                 ],
               ),
               child: Column(
                 children: [
-                  CircleAvatar(
-                    radius: 40,
-                    backgroundColor: AppColors.primary.withOpacity(0.12),
-                    child: Text(
-                      user != null && user.name.isNotEmpty
-                          ? user.name[0].toUpperCase()
-                          : 'U',
-                      style: const TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.primary,
+                  // Avatar with Edit Badge
+                  Stack(
+                    alignment: Alignment.bottomRight,
+                    children: [
+                      Container(
+                        width: 86,
+                        height: 86,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            colors: [AppColors.primary, AppColors.secondary],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.3),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Text(
+                            user != null && user.name.isNotEmpty
+                                ? user.name[0].toUpperCase()
+                                : 'U',
+                            style: const TextStyle(
+                              fontSize: 34,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                      GestureDetector(
+                        onTap: () => _showEditProfileDialog(context, ref),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isDark ? AppColors.cardDark : Colors.white,
+                              width: 2.5,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.edit_rounded,
+                            size: 14,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 14),
-                  Text(
-                    user?.name ?? 'Customer',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                    ),
+
+                  // Name & Role Badge
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          user?.name ?? 'Valued Customer',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.3,
+                            color: isDark
+                                ? AppColors.textPrimaryDark
+                                : AppColors.textPrimaryLight,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          (user?.role ?? 'customer').toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    user?.email ?? '',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                    ),
+                  const SizedBox(height: 6),
+
+                  // Email
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.email_outlined,
+                        size: 14,
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondaryLight,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        user?.email ?? '',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondaryLight,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
+
+                  // Phone (if provided)
                   if (user?.phone != null && user!.phone!.isNotEmpty) ...[
                     const SizedBox(height: 4),
-                    Text(
-                      user.phone!,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.phone_outlined,
+                          size: 14,
+                          color: isDark
+                              ? AppColors.textTertiaryDark
+                              : AppColors.textTertiaryLight,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          user.phone!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark
+                                ? AppColors.textTertiaryDark
+                                : AppColors.textTertiaryLight,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
-                  const SizedBox(height: 14),
-                  OutlinedButton.icon(
-                    onPressed: () => _showEditProfileDialog(context, ref),
-                    icon: const Icon(Icons.edit_outlined, size: 16),
-                    label: const Text('Edit Profile'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 18),
 
-            // Account & Settings Options
+            // ─── Quick Stats Summary ──────────────────────────────────
+            Row(
+              children: [
+                Expanded(
+                  child: _buildStatTile(
+                    icon: Icons.receipt_long_rounded,
+                    value: '${ordersState.orders.length}',
+                    label: 'Orders',
+                    color: AppColors.primary,
+                    isDark: isDark,
+                    onTap: () => context.push(AppRoutes.orders),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildStatTile(
+                    icon: Icons.shopping_bag_rounded,
+                    value: '$cartCount',
+                    label: 'In Cart',
+                    color: AppColors.accent,
+                    isDark: isDark,
+                    onTap: () => context.push(AppRoutes.cart),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildStatTile(
+                    icon: Icons.verified_user_rounded,
+                    value: 'Active',
+                    label: 'Status',
+                    color: AppColors.success,
+                    isDark: isDark,
+                    onTap: () {},
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 22),
+
+            // ─── Account & Orders Section ──────────────────────────────
             _buildSectionCard(
-              title: 'Account & Orders',
+              title: 'ACCOUNT & ORDERS',
               isDark: isDark,
               children: [
-                _buildListTile(
+                _buildActionTile(
                   icon: Icons.receipt_long_outlined,
+                  iconColor: AppColors.primary,
                   title: 'My Orders',
-                  subtitle: 'Track, view, and manage your orders',
+                  subtitle: 'View history & live shipment status',
                   onTap: () => context.push(AppRoutes.orders),
                   isDark: isDark,
                 ),
-                _buildListTile(
-                  icon: Icons.shopping_bag_outlined,
-                  title: 'My Cart',
-                  subtitle: 'View items saved in your cart',
+                _buildDivider(isDark),
+                _buildActionTile(
+                  icon: Icons.shopping_cart_outlined,
+                  iconColor: AppColors.accent,
+                  title: 'Shopping Cart',
+                  subtitle: '$cartCount items waiting for checkout',
                   onTap: () => context.push(AppRoutes.cart),
                   isDark: isDark,
                 ),
+                _buildDivider(isDark),
+                _buildActionTile(
+                  icon: Icons.edit_outlined,
+                  iconColor: AppColors.secondary,
+                  title: 'Edit Profile Information',
+                  subtitle: 'Update your name and phone number',
+                  onTap: () => _showEditProfileDialog(context, ref),
+                  isDark: isDark,
+                ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
 
-            // App Settings
+            // ─── Preferences (ONLY PLACE with Theme Toggle) ───────────
             _buildSectionCard(
-              title: 'Preferences',
+              title: 'PREFERENCES & APPEARANCE',
               isDark: isDark,
               children: [
-                _buildListTile(
-                  icon: Icons.brightness_6_outlined,
-                  title: 'Dark Mode',
-                  subtitle: themeMode == ThemeMode.dark ? 'Enabled' : 'Disabled',
-                  trailing: Switch(
+                // Exclusive Single Theme Switch
+                ListTile(
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: (themeMode == ThemeMode.dark
+                              ? AppColors.primary
+                              : Colors.amber)
+                          .withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      themeMode == ThemeMode.dark
+                          ? Icons.dark_mode_rounded
+                          : Icons.light_mode_rounded,
+                      color: themeMode == ThemeMode.dark
+                          ? AppColors.primary
+                          : Colors.amber.shade800,
+                      size: 22,
+                    ),
+                  ),
+                  title: const Text(
+                    'Dark Theme',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    themeMode == ThemeMode.dark
+                        ? 'Dark mode is currently active'
+                        : 'Light mode is currently active',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark
+                          ? AppColors.textTertiaryDark
+                          : AppColors.textTertiaryLight,
+                    ),
+                  ),
+                  trailing: Switch.adaptive(
                     value: themeMode == ThemeMode.dark,
-                    activeColor: AppColors.primary,
-                    onChanged: (_) => ref.read(themeProvider.notifier).toggleTheme(),
+                    activeThumbColor: Colors.white,
+                    activeTrackColor: AppColors.primary,
+                    inactiveThumbColor: Colors.white,
+                    inactiveTrackColor:
+                        isDark ? Colors.grey.shade700 : Colors.grey.shade400,
+                    onChanged: (_) =>
+                        ref.read(themeProvider.notifier).toggleTheme(),
                   ),
                   onTap: () => ref.read(themeProvider.notifier).toggleTheme(),
-                  isDark: isDark,
                 ),
-                _buildListTile(
+                _buildDivider(isDark),
+                _buildActionTile(
                   icon: Icons.info_outline_rounded,
+                  iconColor: Colors.blueGrey,
                   title: 'About ${AppConstants.appName}',
-                  subtitle: 'Version 1.0.0',
+                  subtitle: 'Version 1.0.0 • Production Build',
+                  onTap: () {},
                   isDark: isDark,
+                  showChevron: false,
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
 
-            // Security & Sign Out
+            // ─── Security & Logout ─────────────────────────────────────
             _buildSectionCard(
-              title: 'Security & Sessions',
+              title: 'SECURITY & SESSIONS',
               isDark: isDark,
               children: [
-                _buildListTile(
+                _buildActionTile(
                   icon: Icons.logout_rounded,
-                  title: 'Sign Out',
-                  subtitle: 'Sign out from this device',
-                  textColor: AppColors.error,
                   iconColor: AppColors.error,
-                  onTap: () => _confirmLogout(context, ref, isAllDevices: false),
+                  title: 'Sign Out',
+                  subtitle: 'Log out from this device',
+                  titleColor: AppColors.error,
+                  onTap: () =>
+                      _confirmLogout(context, ref, isAllDevices: false),
                   isDark: isDark,
                 ),
-                _buildListTile(
+                _buildDivider(isDark),
+                _buildActionTile(
                   icon: Icons.devices_other_rounded,
-                  title: 'Logout All Devices',
-                  subtitle: 'Revoke sessions across all browsers and apps',
-                  textColor: AppColors.error,
                   iconColor: AppColors.error,
+                  title: 'Sign Out All Devices',
+                  subtitle: 'Revoke active sessions across all devices',
+                  titleColor: AppColors.error,
                   onTap: () => _confirmLogout(context, ref, isAllDevices: true),
                   isDark: isDark,
                 ),
               ],
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 24),
+
+            // Footer Brand
+            Text(
+              'NovaStore • Crafted for Speed & Security',
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark
+                    ? AppColors.textTertiaryDark
+                    : AppColors.textTertiaryLight,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatTile({
+    required IconData icon,
+    required String value,
+    required String label,
+    required Color color,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.cardDark : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark ? AppColors.borderDark : AppColors.borderLight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 18, color: color),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimaryLight,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: isDark
+                    ? AppColors.textTertiaryDark
+                    : AppColors.textTertiaryLight,
+              ),
+            ),
           ],
         ),
       ),
@@ -344,23 +657,30 @@ class ProfileScreen extends ConsumerWidget {
     return Container(
       decoration: BoxDecoration(
         color: isDark ? AppColors.cardDark : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isDark ? AppColors.borderDark : AppColors.borderLight,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 8),
             child: Text(
               title,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
                 color: AppColors.primary,
-                letterSpacing: 0.3,
+                letterSpacing: 0.8,
               ),
             ),
           ),
@@ -370,35 +690,67 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildListTile({
+  Widget _buildActionTile({
     required IconData icon,
+    required Color iconColor,
     required String title,
     required String subtitle,
-    VoidCallback? onTap,
-    Widget? trailing,
-    Color? textColor,
-    Color? iconColor,
+    required VoidCallback onTap,
     required bool isDark,
+    Color? titleColor,
+    bool showChevron = true,
   }) {
     return ListTile(
-      leading: Icon(icon, color: iconColor ?? (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight), size: 22),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      leading: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: iconColor.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: iconColor, size: 20),
+      ),
       title: Text(
         title,
         style: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: textColor ?? (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+          color: titleColor ??
+              (isDark
+                  ? AppColors.textPrimaryDark
+                  : AppColors.textPrimaryLight),
         ),
       ),
       subtitle: Text(
         subtitle,
         style: TextStyle(
           fontSize: 12,
-          color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight,
+          color: isDark
+              ? AppColors.textTertiaryDark
+              : AppColors.textTertiaryLight,
         ),
       ),
-      trailing: trailing ?? (onTap != null ? const Icon(Icons.chevron_right, size: 20) : null),
+      trailing: showChevron
+          ? Icon(
+              Icons.chevron_right_rounded,
+              size: 20,
+              color: isDark
+                  ? AppColors.textTertiaryDark
+                  : AppColors.textTertiaryLight,
+            )
+          : null,
       onTap: onTap,
+    );
+  }
+
+  Widget _buildDivider(bool isDark) {
+    return Divider(
+      height: 1,
+      thickness: 0.8,
+      indent: 68,
+      endIndent: 16,
+      color: isDark ? AppColors.borderDark : AppColors.borderLight,
     );
   }
 }

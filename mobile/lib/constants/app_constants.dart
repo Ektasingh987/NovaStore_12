@@ -69,6 +69,7 @@ class AppConstants {
   static const String keyRefreshToken = 'auth_refresh_token';
   static const String keyThemeMode = 'app_theme_mode';
   static const String keyRecentSearches = 'recent_searches';
+  static const String keySavedAddresses = 'saved_delivery_addresses';
 
   // Pagination defaults
   static const int defaultPageSize = 10;

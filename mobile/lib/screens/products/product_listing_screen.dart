@@ -312,7 +312,7 @@ class _ProductListingScreenState extends ConsumerState<ProductListingScreen> {
                       child: Container(
                         decoration: BoxDecoration(
                           color: isDark ? AppColors.surfaceDark : Colors.white,
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(30),
                           border: Border.all(
                             color: isDark ? AppColors.borderDark : AppColors.borderLight,
                           ),
@@ -324,32 +324,35 @@ class _ProductListingScreenState extends ConsumerState<ProductListingScreen> {
                             ),
                           ],
                         ),
-                        child: TextField(
-                          controller: _searchController,
-                          textInputAction: TextInputAction.search,
-                          onChanged: _onSearchChanged,
-                          onSubmitted: (val) {
-                            _debounceTimer?.cancel();
-                            ref.read(productsProvider.notifier).setSearch(val.trim().isEmpty ? null : val.trim());
-                          },
-                          decoration: InputDecoration(
-                            hintText: 'Search products...',
-                            prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColors.primary),
-                            suffixIcon: _searchController.text.isNotEmpty
-                                ? IconButton(
-                                    icon: const Icon(Icons.clear, size: 18),
-                                    onPressed: () {
-                                      _searchController.clear();
-                                      _debounceTimer?.cancel();
-                                      ref.read(productsProvider.notifier).setSearch(null);
-                                      setState(() {});
-                                    },
-                                  )
-                                : null,
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(30),
+                          child: TextField(
+                            controller: _searchController,
+                            textInputAction: TextInputAction.search,
+                            onChanged: _onSearchChanged,
+                            onSubmitted: (val) {
+                              _debounceTimer?.cancel();
+                              ref.read(productsProvider.notifier).setSearch(val.trim().isEmpty ? null : val.trim());
+                            },
+                            decoration: InputDecoration(
+                              hintText: 'Search products...',
+                              prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColors.primary),
+                              suffixIcon: _searchController.text.isNotEmpty
+                                  ? IconButton(
+                                      icon: const Icon(Icons.clear, size: 18),
+                                      onPressed: () {
+                                        _searchController.clear();
+                                        _debounceTimer?.cancel();
+                                        ref.read(productsProvider.notifier).setSearch(null);
+                                        setState(() {});
+                                      },
+                                    )
+                                  : null,
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            ),
                           ),
                         ),
                       ),
@@ -357,14 +360,14 @@ class _ProductListingScreenState extends ConsumerState<ProductListingScreen> {
                     const SizedBox(width: 10),
                     InkWell(
                       onTap: () => _showFilterBottomSheet(context),
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(30),
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: productsState.filter.hasActiveFilters
                               ? AppColors.primary
                               : (isDark ? AppColors.surfaceDark : Colors.white),
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(30),
                           border: Border.all(
                             color: productsState.filter.hasActiveFilters
                                 ? Colors.transparent

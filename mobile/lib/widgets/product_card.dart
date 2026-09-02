@@ -61,6 +61,12 @@ class ProductCard extends ConsumerWidget {
                         ? CachedNetworkImage(
                             imageUrl: imageUrl,
                             fit: BoxFit.cover,
+                            memCacheWidth: 350,
+                            memCacheHeight: 350,
+                            maxWidthDiskCache: 600,
+                            maxHeightDiskCache: 600,
+                            fadeInDuration: const Duration(milliseconds: 200),
+                            fadeOutDuration: const Duration(milliseconds: 100),
                             placeholder: (context, url) => Container(
                               color: isDark ? AppColors.surfaceDark : Colors.grey.shade100,
                               child: const Center(

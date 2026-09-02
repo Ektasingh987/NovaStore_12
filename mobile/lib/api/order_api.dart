@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../constants/app_constants.dart';
 import '../models/api_response.dart';
 import '../models/order_model.dart';
@@ -11,6 +12,17 @@ class OrderListResult {
     required this.orders,
     required this.meta,
   });
+}
+
+// Top-level function executed in background isolate
+OrderListResult _parseOrderList(Map<String, dynamic> response) {
+  final data = response['data'] as Map<String, dynamic>?;
+  final rawList = (data?['orders'] as List<dynamic>?) ?? [];
+  final orders = rawList
+      .map((item) => OrderModel.fromJson(item as Map<String, dynamic>))
+      .toList();
+  final meta = PaginationMeta.fromJson(response['meta'] as Map<String, dynamic>?);
+  return OrderListResult(orders: orders, meta: meta);
 }
 
 class OrderApi {
@@ -61,15 +73,15 @@ class OrderApi {
       queryParameters: query,
     );
 
-    final data = response['data'] as Map<String, dynamic>?;
-    final rawList = (data?['orders'] as List<dynamic>?) ?? [];
-    final orders = rawList
-        .map((item) => OrderModel.fromJson(item as Map<String, dynamic>))
-        .toList();
+    if (response is! Map<String, dynamic>) {
+      return OrderListResult(
+        orders: [],
+        meta: PaginationMeta.fromJson(null),
+      );
+    }
 
-    final meta = PaginationMeta.fromJson(response['meta'] as Map<String, dynamic>?);
-
-    return OrderListResult(orders: orders, meta: meta);
+    // Offload parsing off the main thread
+    return await compute(_parseOrderList, response);
   }
 
   Future<OrderModel> getOrderById(String id) async {
