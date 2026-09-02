@@ -1,3 +1,4 @@
+
 # Miscellaneous
 *.class
 *.log
@@ -43,3 +44,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Environment Variables
+.env
+.env.*
+.env.local
+!.env.example
