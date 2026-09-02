@@ -36,6 +36,16 @@ curl -X POST http://localhost:5000/api/v1/auth/logout \
 
 ---
 
+## 📮 Postman Collection & Environment
+
+A complete Postman workspace is included in the [`postman/`](./postman/) folder:
+
+- **Collection**: [`postman/ecommerce.postman_collection.json`](./postman/ecommerce.postman_collection.json)
+- **Environment**: [`postman/ecommerce.postman_environment.json`](./postman/ecommerce.postman_environment.json)
+- **Guide**: See [`postman/README.md`](./postman/README.md) for full import and testing instructions.
+
+---
+
 ## Tech Stack
 
 | Layer | Library |

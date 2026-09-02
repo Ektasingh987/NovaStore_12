@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "a90b431e-4c32-4d22-95f0-62e92c4e2098",
 		"name": "E-Commerce REST API",
-		"description": "Comprehensive Postman collection for the Full-Stack E-Commerce Backend API.\n\nIncludes Authentication (JWT rotation + reuse detection), Users, Categories, Products, Cart, Orders, Admin Management, Multipart Image Uploads, and documented error examples.",
+		"description": "Comprehensive Postman collection for the Full-Stack E-Commerce Backend API.\n\nIncludes Authentication (JWT rotation + reuse detection), Users, Categories, Products, Cart, Orders, Admin Management (Dashboard stats, Order processing & deletion, User management & deletion), Multipart Image Uploads, and documented error examples.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -18,8 +18,12 @@
 								"exec": [
 									"var jsonData = pm.response.json();",
 									"if (jsonData.data && jsonData.data.accessToken) {",
-									"    pm.collectionVariables.set('accessToken', jsonData.data.accessToken);",
-									"    pm.collectionVariables.set('refreshToken', jsonData.data.refreshToken);",
+									"    pm.collectionVariables.set(\"accessToken\", jsonData.data.accessToken);",
+									"    pm.collectionVariables.set(\"refreshToken\", jsonData.data.refreshToken);",
+									"    if (pm.environment) {",
+									"        pm.environment.set(\"accessToken\", jsonData.data.accessToken);",
+									"        pm.environment.set(\"refreshToken\", jsonData.data.refreshToken);",
+									"    }",
 									"}"
 								],
 								"type": "text/javascript"
@@ -62,8 +66,12 @@
 								"exec": [
 									"var jsonData = pm.response.json();",
 									"if (jsonData.data && jsonData.data.accessToken) {",
-									"    pm.collectionVariables.set('accessToken', jsonData.data.accessToken);",
-									"    pm.collectionVariables.set('refreshToken', jsonData.data.refreshToken);",
+									"    pm.collectionVariables.set(\"accessToken\", jsonData.data.accessToken);",
+									"    pm.collectionVariables.set(\"refreshToken\", jsonData.data.refreshToken);",
+									"    if (pm.environment) {",
+									"        pm.environment.set(\"accessToken\", jsonData.data.accessToken);",
+									"        pm.environment.set(\"refreshToken\", jsonData.data.refreshToken);",
+									"    }",
 									"}"
 								],
 								"type": "text/javascript"
@@ -106,7 +114,16 @@
 								"exec": [
 									"var jsonData = pm.response.json();",
 									"if (jsonData.data && jsonData.data.accessToken) {",
-									"    pm.collectionVariables.set('adminAccessToken', jsonData.data.accessToken);",
+									"    pm.collectionVariables.set(\"adminAccessToken\", jsonData.data.accessToken);",
+									"    if (jsonData.data.refreshToken) {",
+									"        pm.collectionVariables.set(\"adminRefreshToken\", jsonData.data.refreshToken);",
+									"    }",
+									"    if (pm.environment) {",
+									"        pm.environment.set(\"adminAccessToken\", jsonData.data.accessToken);",
+									"        if (jsonData.data.refreshToken) {",
+									"            pm.environment.set(\"adminRefreshToken\", jsonData.data.refreshToken);",
+									"        }",
+									"    }",
 									"}"
 								],
 								"type": "text/javascript"
@@ -149,8 +166,12 @@
 								"exec": [
 									"var jsonData = pm.response.json();",
 									"if (jsonData.data && jsonData.data.accessToken) {",
-									"    pm.collectionVariables.set('accessToken', jsonData.data.accessToken);",
-									"    pm.collectionVariables.set('refreshToken', jsonData.data.refreshToken);",
+									"    pm.collectionVariables.set(\"accessToken\", jsonData.data.accessToken);",
+									"    pm.collectionVariables.set(\"refreshToken\", jsonData.data.refreshToken);",
+									"    if (pm.environment) {",
+									"        pm.environment.set(\"accessToken\", jsonData.data.accessToken);",
+									"        pm.environment.set(\"refreshToken\", jsonData.data.refreshToken);",
+									"    }",
 									"}"
 								],
 								"type": "text/javascript"
@@ -479,7 +500,22 @@
 							]
 						}
 					},
-					"response": []
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.data && jsonData.data.category && jsonData.data.category._id) {",
+									"    pm.collectionVariables.set(\"categoryId\", jsonData.data.category._id);",
+									"    if (pm.environment) pm.environment.set(\"categoryId\", jsonData.data.category._id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
 				},
 				{
 					"name": "Update Category (Admin)",
@@ -722,7 +758,22 @@
 							]
 						}
 					},
-					"response": []
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.data && jsonData.data.product && jsonData.data.product._id) {",
+									"    pm.collectionVariables.set(\"productId\", jsonData.data.product._id);",
+									"    if (pm.environment) pm.environment.set(\"productId\", jsonData.data.product._id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
 				},
 				{
 					"name": "Update Product (Admin)",
@@ -1005,7 +1056,22 @@
 							]
 						}
 					},
-					"response": []
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.data && jsonData.data.order && jsonData.data.order._id) {",
+									"    pm.collectionVariables.set(\"orderId\", jsonData.data.order._id);",
+									"    if (pm.environment) pm.environment.set(\"orderId\", jsonData.data.order._id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
 				},
 				{
 					"name": "List My Orders (Customer)",
@@ -1107,6 +1173,37 @@
 							]
 						},
 						"description": "Dashboard overview stats using MongoDB aggregation: totalUsers, totalProducts, totalOrders, totalRevenue (Delivered), recentOrders (last 5), and ordersByStatus breakdown."
+					},
+					"response": []
+				},
+				{
+					"name": "Admin Dashboard Stats (Dashboard Alias)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminAccessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/dashboard/stats",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"dashboard",
+								"stats"
+							]
+						},
+						"description": "Alternative endpoint alias for dashboard KPI summary statistics (Admin only)."
 					},
 					"response": []
 				},
@@ -1221,6 +1318,37 @@
 								"status"
 							]
 						}
+					},
+					"response": []
+				},
+				{
+					"name": "Admin Delete Order",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminAccessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/orders/{{orderId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"orders",
+								"{{orderId}}"
+							]
+						},
+						"description": "Permanently deletes an order by its MongoDB ID (Admin only)."
 					},
 					"response": []
 				},
@@ -1369,6 +1497,37 @@
 								"status"
 							]
 						}
+					},
+					"response": []
+				},
+				{
+					"name": "Admin Delete User",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminAccessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/users/{{userId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"users",
+								"{{userId}}"
+							]
+						},
+						"description": "Permanently deletes a customer or staff user account by MongoDB ID (Admin only). Prevents deleting the requesting admin account."
 					},
 					"response": []
 				}

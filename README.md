@@ -27,7 +27,7 @@
 9. [Step-by-Step Installation Guide](#-step-by-step-installation-guide)
 10. [Database Seeding & Test Credentials](#-database-seeding--test-credentials)
 11. [How to Run Each Service](#-how-to-run-each-service)
-12. [Complete REST API Reference](#-complete-rest-api-reference)
+12. [Complete REST API Reference & Postman Workspace](#-complete-rest-api-reference)
 13. [End-to-End Shopping & Order Flow](#-end-to-end-shopping--order-flow)
 14. [Troubleshooting & Common Questions](#-troubleshooting--common-questions)
 15. [Assignment Requirements Compliance Matrix](#-assignment-requirements-compliance-matrix)
@@ -475,6 +475,22 @@ flutter run -d ios
 
 ## 📡 Complete REST API Reference
 
+### 📮 Postman Collection & Environment Setup
+
+A ready-to-use Postman collection covering all endpoints, environment variables, automated token rotation scripts, and documented error scenarios is located in [`backend/postman/`](./backend/postman/):
+
+- **Collection**: [`backend/postman/ecommerce.postman_collection.json`](./backend/postman/ecommerce.postman_collection.json) (35+ requests across 8 folders)
+- **Environment**: [`backend/postman/ecommerce.postman_environment.json`](./backend/postman/ecommerce.postman_environment.json) (Pre-configured local variables & auto-captured JWTs)
+- **Postman Guide**: [`backend/postman/README.md`](./backend/postman/README.md) (Step-by-step import & automated test instructions)
+
+To import into Postman:
+1. Click **Import** in Postman.
+2. Select both `ecommerce.postman_collection.json` and `ecommerce.postman_environment.json`.
+3. Select the **NovaStore E-Commerce — Local Environment** from the environment dropdown.
+4. Run `Login Admin` or `Login Customer` — tokens and entity IDs are auto-captured for subsequent requests!
+
+---
+
 The backend supports both `/api/v1/...` (versioned) and `/api/...` routes. All endpoints return a standardized JSON envelope:
 
 ```json
@@ -600,9 +616,12 @@ curl -X POST http://localhost:5000/api/v1/orders \
 | `GET` | `/api/v1/admin/orders` | Admin Only | Filter all store orders with customer details & status filters |
 | `GET` | `/api/v1/admin/orders/:id` | Admin Only | View detailed order breakdown |
 | `PATCH`| `/api/v1/admin/orders/:id/status` | Admin Only | Transition order status (`Confirmed`, `Shipped`, `Delivered`, etc.) |
+| `DELETE`| `/api/v1/admin/orders/:id` | Admin Only | Delete order record |
 | `GET` | `/api/v1/admin/users` | Admin Only | List registered customers with search, pagination, and filters |
 | `GET` | `/api/v1/admin/users/:id` | Admin Only | Inspect specific customer account details and history |
+| `GET` | `/api/v1/admin/users/:id/orders` | Admin Only | List all orders placed by specific customer |
 | `PATCH`| `/api/v1/admin/users/:id/status` | Admin Only | Toggle user `isActive` status (deactivation revokes all sessions) |
+| `DELETE`| `/api/v1/admin/users/:id` | Admin Only | Delete user account (prevents deleting active self) |
 
 ---
 
