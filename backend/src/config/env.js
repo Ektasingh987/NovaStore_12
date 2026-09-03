@@ -57,6 +57,11 @@ const env = {
   // Cookies
   COOKIE_SECURE: process.env.COOKIE_SECURE === 'true',
   COOKIE_SAME_SITE: process.env.COOKIE_SAME_SITE || 'lax',
+
+  // Health check pinger (Render keepalive)
+  AUTO_HEALTH_PING_ENABLED: process.env.AUTO_HEALTH_PING_ENABLED !== 'false',
+  HEALTH_PING_INTERVAL_MS: parseInt(process.env.HEALTH_PING_INTERVAL_MS, 10) || 120000, // 2 minutes
+  RENDER_EXTERNAL_URL: process.env.RENDER_EXTERNAL_URL || '',
 };
 
 module.exports = env;

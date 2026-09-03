@@ -6,6 +6,7 @@ const env = require('./config/env');
 require('./config/cloudinary');
 const logger = require('./config/logger');
 const { connectDB, disconnectDB } = require('./config/database');
+const { startHealthPinger, stopHealthPinger } = require('./services/healthPinger.service');
 
 const server = http.createServer(app);
 
@@ -14,6 +15,9 @@ const SHUTDOWN_TIMEOUT_MS = 10_000;
 
 async function gracefulShutdown(signal) {
   logger.info(`[Server] ${signal} received — shutting down gracefully…`);
+
+  // Stop background health check pinger
+  stopHealthPinger();
 
   const forceExit = setTimeout(() => {
     logger.error('[Server] Forced shutdown after timeout.');
@@ -63,6 +67,9 @@ process.on('unhandledRejection', (reason) => {
         port: env.PORT,
         url: env.PUBLIC_API_URL,
       });
+
+      // Start automatic 2-second health check pinger
+      startHealthPinger(env.HEALTH_PING_INTERVAL_MS);
     });
   } catch (err) {
     logger.error('[Server] Failed to start', { error: err.message });

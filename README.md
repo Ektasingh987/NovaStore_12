@@ -8,9 +8,10 @@
 [![Flutter](https://img.shields.io/badge/Flutter-3.x_Dart_3-02569B.svg?logo=flutter)](https://flutter.dev/)
 [![Riverpod](https://img.shields.io/badge/Riverpod-2.5-blue.svg)](https://riverpod.dev/)
 [![Cloudinary](https://img.shields.io/badge/Cloudinary-Image_CDN-blueviolet.svg?logo=cloudinary)](https://cloudinary.com/)
+[![Render](https://img.shields.io/badge/Render-Free_Tier_Hosting-46E3B7.svg?logo=render&logoColor=black)](https://render.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**NovaStore** is an enterprise-grade, full-stack E-Commerce platform built from scratch. It features a scalable **Node.js/Express & MongoDB REST API**, a high-performance **React + Vite Admin Portal** with dark-glassmorphism design, and a responsive **Flutter Mobile Application** for customers across Android, iOS, and Web.
+**NovaStore** is an enterprise-grade, full-stack E-Commerce platform built from scratch. It features a scalable **Node.js/Express & MongoDB REST API** (hosted on **Render Free Tier** with an automated keep-alive daemon), a high-performance **React + Vite Admin Portal** with dark-glassmorphism design, and a responsive **Flutter Mobile Application** for customers across Android, iOS, and Web.
 
 ---
 
@@ -22,15 +23,16 @@
 4. [Core Features & Functional Modules](#-core-features--functional-modules)
 5. [Database Architecture & Indexing Strategy](#-database-architecture--indexing-strategy)
 6. [Security & Token Management](#-security--token-management)
-7. [Prerequisites & System Requirements](#-prerequisites--system-requirements)
-8. [Environment Variables Setup](#-environment-variables-setup)
-9. [Step-by-Step Installation Guide](#-step-by-step-installation-guide)
-10. [Database Seeding & Test Credentials](#-database-seeding--test-credentials)
-11. [How to Run Each Service](#-how-to-run-each-service)
-12. [Complete REST API Reference & Postman Workspace](#-complete-rest-api-reference)
-13. [End-to-End Shopping & Order Flow](#-end-to-end-shopping--order-flow)
-14. [Troubleshooting & Common Questions](#-troubleshooting--common-questions)
-15. [Assignment Requirements Compliance Matrix](#-assignment-requirements-compliance-matrix)
+7. [Render Free Tier Hosting & Keep-Alive Mechanism](#-render-free-tier-hosting--keep-alive-mechanism)
+8. [Prerequisites & System Requirements](#-prerequisites--system-requirements)
+9. [Environment Variables Setup](#-environment-variables-setup)
+10. [Step-by-Step Installation Guide](#-step-by-step-installation-guide)
+11. [Database Seeding & Test Credentials](#-database-seeding--test-credentials)
+12. [How to Run Each Service](#-how-to-run-each-service)
+13. [Complete REST API Reference & Postman Workspace](#-complete-rest-api-reference)
+14. [End-to-End Shopping & Order Flow](#-end-to-end-shopping--order-flow)
+15. [Troubleshooting & Common Questions](#-troubleshooting--common-questions)
+16. [Assignment Requirements Compliance Matrix](#-assignment-requirements-compliance-matrix)
 
 ---
 
@@ -81,6 +83,7 @@ graph TD
 
 ### 1. Backend REST API
 - **Runtime**: Node.js (v18+) with Express.js 4.x
+- **Hosting & Cloud Deployment**: **Render (Free Tier Web Service)** with automated self-health check keep-alive daemon
 - **Database**: MongoDB with Mongoose 8.x
 - **Authentication**: JWT (JSON Web Tokens) with cryptographically secure refresh token rotation & family revocation
 - **Password Security**: bcrypt (12 salt rounds)
@@ -89,6 +92,7 @@ graph TD
 - **Security**: Helmet HTTP header protection, strict CORS origin whitelisting, Express Rate Limit (customized per endpoint), cookie-parser
 - **Logging**: Winston structured JSON logger (with sensitive data redaction) + Morgan HTTP request stream
 - **Error Handling**: Centralized `AppError` class with standardized error response envelope
+- **Keep-Alive Service**: Automated 2-minute interval ping service targeting `/health` to maintain instance activity and prevent cold starts
 
 ### 2. Admin Dashboard (Web)
 - **Framework**: React 18 with Vite for lightning-fast HMR build times
@@ -291,6 +295,43 @@ sequenceDiagram
 
 ---
 
+## ☁️ Render Free Tier Hosting & Keep-Alive Mechanism
+
+The NovaStore backend REST API is hosted on the **Render Free Web Service Tier** ([render.com](https://render.com/)).
+
+### Free Tier Behavior & Cold Start Consideration
+- **Inactivity Spin-Down**: Free tier web services on Render automatically spin down (enter sleep mode) after **15 minutes of inbound traffic inactivity** to conserve cloud resources.
+- **Cold Start Latency**: When a sleeping instance receives a new request from the mobile app or admin dashboard, Render spins up the container, taking **~30–50 seconds** for initial boot.
+
+### Built-In Automated Keep-Alive Daemon (`healthPinger.service.js`)
+To prevent unexpected cold starts during testing and live demonstrations, NovaStore includes an embedded **Auto Health Pinger** service:
+- **Interval-Based Self-Polling**: Runs a lightweight background daemon that pings the server's own `/health` endpoint every **2 minutes (120,000 ms)**.
+- **Dynamic URL Resolution**: Automatically detects Render's platform environment variable `RENDER_EXTERNAL_URL` (e.g. `https://your-service.onrender.com`), falling back to `PUBLIC_API_URL` or `localhost`.
+- **Zero Log Overhead**: The `/health` route is excluded from HTTP access logging in Winston/Morgan to avoid polluting log streams.
+- **Real-Time Diagnostics**: Inspect ping statistics (total pings, success rate, latency, and last ping timestamp) anytime via `GET /health`:
+
+```json
+{
+  "success": true,
+  "message": "Server is healthy",
+  "timestamp": "2026-09-03T05:50:00.000Z",
+  "uptime": 1245.8,
+  "pinger": {
+    "isActive": true,
+    "intervalMs": 120000,
+    "targetUrl": "https://novastore-api.onrender.com/health",
+    "totalPings": 10,
+    "successfulPings": 10,
+    "failedPings": 0,
+    "lastPingAt": "2026-09-03T05:48:00.000Z",
+    "lastStatus": 200,
+    "lastDurationMs": 142
+  }
+}
+```
+
+---
+
 ## ⚙️ Prerequisites & System Requirements
 
 Ensure the following tools are installed on your machine:
@@ -341,6 +382,11 @@ CLOUDINARY_FOLDER=ecommerce
 LOG_LEVEL=debug
 COOKIE_SECURE=false
 COOKIE_SAME_SITE=lax
+
+# Render Free Tier & Health Check Keep-Alive
+AUTO_HEALTH_PING_ENABLED=true
+HEALTH_PING_INTERVAL_MS=120000
+RENDER_EXTERNAL_URL=
 ```
 
 > [!TIP]
@@ -676,6 +722,10 @@ Here is how the system handles a complete order lifecycle from customer purchase
 - **Problem**: Browser blocks requests with `CORS: Origin not allowed`.
 - **Solution**: Ensure `ADMIN_URL` in `backend/.env` matches your Vite dev server URL (e.g. `http://localhost:4000` or `http://localhost:5173`). In development mode, localhost regex origins are automatically permitted.
 
+### 5. Render Free Tier Initial Request Delay (Cold Start)
+- **Problem**: First request to the Render-deployed backend takes ~30–50 seconds to respond after a prolonged period of no activity.
+- **Solution**: Render Free Web Services spin down after 15 minutes of zero traffic. The built-in Keep-Alive daemon (`AUTO_HEALTH_PING_ENABLED=true`) self-polls `/health` every 2 minutes while running to keep the container active. For external continuous uptime, you can also add the public `/health` URL to a free uptime monitor (e.g., UptimeRobot or Cron-Job.org).
+
 ---
 
 ## 📋 Assignment Requirements Compliance Matrix
@@ -683,6 +733,7 @@ Here is how the system handles a complete order lifecycle from customer purchase
 | Requirement | Implementation Details | Status |
 | :--- | :--- | :---: |
 | **REST API Server** | Node.js, Express 4, Modular Controllers, Repositories, Joi Validation | ✅ **Completed** |
+| **Cloud Hosting (Render)** | Render Free Tier Web Service with automated keep-alive self-ping daemon | ✅ **Completed** |
 | **Database & ODM** | MongoDB with Mongoose 8, Schema relationships, Compound & TTL indexes | ✅ **Completed** |
 | **JWT Authentication** | 15m access token + 30d cryptographic refresh token rotation in MongoDB | ✅ **Completed** |
 | **Security Architecture** | Token family reuse detection, Helmet, strict CORS, endpoint rate limiting | ✅ **Completed** |

@@ -104,12 +104,16 @@ app.get('/', (_req, res) => {
 });
 
 // ─── Health check ─────────────────────────────────────────────────────────────
+const { getHealthPingerStats } = require('./services/healthPinger.service');
+
 app.get('/health', (_req, res) => {
   res.json({
     success: true,
     message: 'Server is healthy',
     environment: env.NODE_ENV,
     timestamp: new Date().toISOString(),
+    uptime: `${Math.floor(process.uptime())}s`,
+    autoPinger: getHealthPingerStats(),
   });
 });
 
